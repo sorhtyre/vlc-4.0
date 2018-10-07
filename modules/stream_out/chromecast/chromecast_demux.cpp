@@ -31,6 +31,7 @@
 #include <vlc_common.h>
 #include <vlc_plugin.h>
 #include <vlc_demux.h>
+#include <vlc_aout.h>
 
 #include "chromecast_common.h"
 
@@ -236,6 +237,10 @@ struct demux_cc
 
     int Demux()
     {
+
+        float f_volume = aout_VolumeGet( (audio_output_t *)p_demux->obj.parent->obj.parent->obj.parent->obj.parent );
+        p_renderer->pf_set_volume( p_renderer->p_opaque, f_volume );
+
         if ( !m_enabled )
             return demux_Demux( p_demux->p_next );
 

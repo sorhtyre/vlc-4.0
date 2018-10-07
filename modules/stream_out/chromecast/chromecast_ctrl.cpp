@@ -117,6 +117,7 @@ intf_sys_t::intf_sys_t(vlc_object_t * const p_this, int port, std::string device
  , m_cc_time( VLC_TICK_INVALID )
  , m_pause_delay( VLC_TICK_INVALID )
  , m_pingRetriesLeft( PING_WAIT_RETRIES )
+ , m_volume( -2.0 )
 {
     m_communication = new ChromecastCommunication( p_this,
         getHttpStreamPath(), getHttpStreamPort(),
@@ -137,6 +138,7 @@ intf_sys_t::intf_sys_t(vlc_object_t * const p_this, int port, std::string device
     m_common.pf_send_input_event = send_input_event;
     m_common.pf_set_pause_state  = set_pause_state;
     m_common.pf_set_meta         = set_meta;
+    m_common.pf_set_volume       = set_volume;
 
     assert( var_Type( m_module->obj.parent->obj.parent, CC_SHARED_VAR_NAME) == 0 );
     if (var_Create( m_module->obj.parent->obj.parent, CC_SHARED_VAR_NAME, VLC_VAR_ADDRESS ) == VLC_SUCCESS )
@@ -1112,6 +1114,22 @@ void intf_sys_t::setDemuxEnabled(bool enabled,
     }
 }
 
+void intf_sys_t::setVolume(float vol)
+{
+    if ( m_volume != vol )
+    {
+        if ( vol < 0.0 )
+            m_volume = 0.0;
+        else if ( vol > 1.0 )
+            m_volume = 1.0;
+        else
+            m_volume = vol;
+
+        m_communication->msgPlayerSetVolume( m_appTransportId, m_mediaSessionId, m_volume, false );
+        m_volume = vol;
+    }
+}
+
 void intf_sys_t::setPauseState(bool paused, vlc_tick_t delay)
 {
     vlc::threads::mutex_locker lock( m_lock );
@@ -1260,4 +1278,10 @@ void intf_sys_t::set_meta(void *pt, vlc_meta_t *p_meta)
 {
     intf_sys_t *p_this = static_cast<intf_sys_t*>(pt);
     p_this->setMeta( p_meta );
+}
+
+void intf_sys_t::set_volume(void *pt, float vol)
+{
+    intf_sys_t *p_this = static_cast<intf_sys_t*>(pt);
+    p_this->setVolume( vol );
 }
